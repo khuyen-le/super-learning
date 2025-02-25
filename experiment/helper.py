@@ -6,8 +6,8 @@ import math
 
 def generate_guessing_options(items_list, unique_cluster_labels, cluster_dict, possible_options_idx, N_GUESSES, N_OPTIONS): 
     options_list = []
-    random.shuffle(unique_cluster_labels)
     for _ in range(N_GUESSES): 
+        random.shuffle(unique_cluster_labels)
         option_choices_idx = []
         # try to sample evenly across all clusters
         for cur_cluster in unique_cluster_labels: 
@@ -38,8 +38,6 @@ def generate_guessing_options(items_list, unique_cluster_labels, cluster_dict, p
 def generate_guessing_game(items_list, cluster, version, N_GUESSES, N_OPTIONS):
     unique_cluster_labels = list(range(0, max(cluster.labels_) + 1))
     print(unique_cluster_labels)
-
-    print(type(unique_cluster_labels))
     # create a dictionary with key = each cluster_label, value = corresponding item idx
     cluster_dict = {}
     for cluster_label in unique_cluster_labels: 

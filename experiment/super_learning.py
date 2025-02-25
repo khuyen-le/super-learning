@@ -82,9 +82,7 @@ boundary = visual.Circle(
 ) 
 boundary.draw()
 
-item_positions = []
-item_boxes = []
-item_texts = []
+item_positions = [] #keep track of item positions so that it's easier to check for location of rectangles to not be too overlapping.
 
 for item in items_list: 
     #generate textboxes
@@ -98,7 +96,7 @@ for item in items_list:
     item_x, item_y = random_point_in_circle(RADIUS, boundary.pos)
     existing_check_idx = 0
     while existing_check_idx < len(item_positions):
-        print("checking location of item " + item)
+        print("checking location of item " + item['text'])
         existing_x, existing_y = item_positions[existing_check_idx]
         print(existing_x, existing_y)
         if math.sqrt((item_x - existing_x)**2 + (item_y - existing_y)**2) < 50: #actual number was trial and error
@@ -112,6 +110,7 @@ for item in items_list:
             existing_check_idx += 1
     
     # once we get here, item_x and y have been checked against all the existing positions
+    item_positions.append((item_x, item_y))
     item_text.setPos((item_x, item_y))
     item_rect.setPos((item_x, item_y))
 
