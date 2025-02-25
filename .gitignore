@@ -1,3 +1,7 @@
+# python temp files
+*__pycache__
+*.code-workspace
+
 # background
 background/*
 

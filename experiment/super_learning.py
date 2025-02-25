@@ -1,18 +1,21 @@
-from psychopy import visual, event, core, sound, gui # import the bits of PsychoPy we'll need for this walkthrough
+from psychopy import visual, event, core, gui # import the bits of PsychoPy we'll need for this walkthrough
 import os
 import random
 import math
 from generate_trials import generate_trials
-from helper import get_runtime_variables, import_trials, random_point_in_circle
+from helper import get_runtime_variables, import_trials, random_point_in_circle, generate_guessing_game
+from cluster import get_cluster, test_cluster
 
 #open a window
 WIN_SIZE = 800
-#TODO: change this to full screen
+#TODO: change this to full screen? 
 win = visual.Window([WIN_SIZE,WIN_SIZE],color="grey", units='pix', checkTiming=False) 
 
 #get runtime variables
-order =  ['subj_code','seed']
-runtime_vars = get_runtime_variables({'subj_code':'sl_101', 'seed':23}, order)
+order =  ['subj_code','seed', 'version']
+#close: sampled within one cluster; far: sampled across all clusters
+runtime_vars = get_runtime_variables({'subj_code':'sl_101', 'seed':23, 
+                                      'Select version':['near', 'far']}, order)
 print(runtime_vars)
 
 # generate trials
@@ -30,7 +33,7 @@ print(runtime_vars)
 
 #show instructions
 instruction_text = "Welcome to the experiment!\n\nPress the space bar to continue."
-instruction = visual.TextStim(win, text = instruction_text,color="white", height=30, pos = (0,0))
+instruction = visual.TextStim(win, text = instruction_text,color="white", height=25, pos = (0,0))
 instruction.draw()
 win.flip()
 #wait for the space key
@@ -38,47 +41,70 @@ event.waitKeys(keyList=['space'])
 win.flip()
 core.wait(.5)
 
-items = ['dog', 'cat', 'ant', 'frog', 'shark', 'human', 'lion', 'rabbit', 'snake', 'eagle']
-#trial loop
+# items = ['zebra', 'horse', 'giraffe', 'elephant', 'pig', 'sheep', 'cow', 'rabbit', 'seal', 'dog', 
+#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'human', 'raccoon', 'beaver', 'lion', 
+#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 'peacock', 'fly', 
+#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'sealion', 'crab', 'snake', 'frog', 'turtle', 
+#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl', 'gecko', 'mosquito',
+#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'eel', 'salmon', 'cheetah', 'ostrich', 'starfish']
+
+# # not great... maybe if we actually run it we should think about how many to sample...
+# items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
+#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle',
+#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 
+#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'crab', 'snake', 'frog', 
+#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl',
+#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'salmon', 'cheetah', 'ostrich']
+
+
+items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
+         'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle', 
+         'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin']
+
+items_list = list(map(lambda x: {'text': x}, items))
+
+#items = ['dog', 'cat', 'ant', 'frog', 'shark', 'human', 'lion', 'rabbit', 'snake', 'eagle']
+#show instructions for visual sort task
+instruction_visual_sort_text = "Please arrange these animals such that the ones more similar are closer together.\n\nPress the space bar when you are done."
+instruction_visual_sort = visual.TextStim(win, text = instruction_visual_sort_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 70), wrapWidth = WIN_SIZE * 0.8)
+instruction_visual_sort.draw()
+
 #responseTimer = core.Clock()
 
-#while True:
 # create circle boundary
 RADIUS = WIN_SIZE * 0.4
 boundary = visual.Circle(
     win=win,
     radius=RADIUS, # change this
     lineColor='black',
-    fillColor='lightgreen'
+    fillColor='lightgreen',
+    pos = (0, -70)
 ) 
 boundary.draw()
-#win.flip()
 
 item_positions = []
-#for each item, create a textbox
-#then keep track of the textboxes and their position, as a dict?
+item_boxes = []
+item_texts = []
 
-for item in items: 
+for item in items_list: 
     #generate textboxes
-    item_text = visual.TextStim(win,text="", height=22, color="black",pos=[0,0], 
+    item_text = visual.TextStim(win,text=item['text'], height=20, color="black",pos=[0,0], 
                                 draggable=True)
-    item_text.setText(item)
     item_rect = visual.Rect(win, width=item_text.boundingBox[0] + 10, #some additional padding
                                     height=item_text.boundingBox[1] + 10, 
                                     fillColor='white', lineColor='black')
-
     #Also from Claude.AI: check against existing locations to make sure text doesn't overlap
     #there's probably a better implementation of this
-    item_x, item_y = random_point_in_circle(RADIUS)
+    item_x, item_y = random_point_in_circle(RADIUS, boundary.pos)
     existing_check_idx = 0
     while existing_check_idx < len(item_positions):
         print("checking location of item " + item)
         existing_x, existing_y = item_positions[existing_check_idx]
         print(existing_x, existing_y)
-        if math.sqrt((item_x - existing_x)**2 + (item_y - existing_y)**2) < 40: #actual number was trial and error
+        if math.sqrt((item_x - existing_x)**2 + (item_y - existing_y)**2) < 50: #actual number was trial and error
             print("too close, regenerating...")
             #regenerate item_x and y
-            item_x, item_y = random_point_in_circle(RADIUS) 
+            item_x, item_y = random_point_in_circle(RADIUS, boundary.pos) 
             #reset check idx
             existing_check_idx = 0 
         else: 
@@ -86,29 +112,119 @@ for item in items:
             existing_check_idx += 1
     
     # once we get here, item_x and y have been checked against all the existing positions
-    item_positions.append((item_x, item_y))
     item_text.setPos((item_x, item_y))
     item_rect.setPos((item_x, item_y))
+
+    item['rect'] = item_rect
+    item['text_stim'] = item_text
 
     item_rect.draw()
     item_text.draw()
 
-# yay! we figured out how to draw the free sort stuff!
-# now let's figure out how to move things around the circle
+win.flip()
 
-# first I want to keep track of everything
-
-stimuli = dict(zip(items, item_positions))
-print(stimuli)
-
+#now we're gonna try to move the texts around.
 # getting help from drag_images
 # create a mouse
 mouse = event.Mouse(win=win)
 
+# a little bit funky if you move the mouse too fast
+while not event.getKeys(keyList=['space']):
+    for item in items_list:
+        if mouse.isPressedIn(item['rect']): 
+            cur_item_rect = item['rect']
+            cur_item_text = item['text_stim']
+            # to keep the mouse on one particular item until it is released
+            while mouse.isPressedIn(cur_item_rect): 
+                #keep the text within the green boundary
+                if boundary.contains(mouse): 
+                    cur_item_rect.pos = mouse.getPos()
+                    cur_item_text.pos = mouse.getPos()
+                    instruction_visual_sort.draw()
+                    boundary.draw()
+                    for item in items_list: 
+                        item['rect'].draw()
+                        item['text_stim'].draw()
+                    win.flip()
+mouse.clickReset()
+
+items_pos = list(map(lambda x: x['rect'].pos, items_list))
+cluster = get_cluster(items_pos, 10)
+
+#show colored-in clusters
+instruction_test_cluster = visual.TextStim(win, text = "This part is here to test the clustering method, will be commented out for actual experiment. Press space bar to continue.", color="white", height=25, pos = (0, WIN_SIZE/2 - 70), wrapWidth = WIN_SIZE * 0.8)
+instruction_test_cluster.draw()
+
+test_cluster(cluster, items_list)
 win.flip()
-core.wait(15)
+event.waitKeys(keyList=['space'])
+win.flip()
+
+#now play the guessing game
+#TODO: create 'pluralize' method to get pluralization of animal names
+#define the word for the novel category
+novel_cat = random.choice(['tulvers', 'sibus', 'tomas'])
+
+instruction_game_text = f"In this section, you'll hear about animals that are {novel_cat}. Some animals are {novel_cat}, but not all animals are {novel_cat}.\n\nYour task is to guess which animals are {novel_cat} based on the examples provided.\n\nPress the space bar to continue."
+instruction_game = visual.TextStim(win, text = instruction_game_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 200), wrapWidth = WIN_SIZE * 0.8)
+instruction_game.draw()
+win.flip()
+event.waitKeys(keyList='space')
+win.flip()
+core.wait(.5)
+
+N_GUESSES = 5 # set this
+N_OPTIONS = 3 
+
+hints, options_list = generate_guessing_game(items_list, cluster, runtime_vars['Select version'], N_GUESSES, N_OPTIONS)
+
+#play the guessing game
+for i in range(N_GUESSES): 
+    exemplar_text = f"{hints[i].capitalize()}s are {novel_cat}.\n\nOf the animals below, which one(s) do you think are also {novel_cat}?\n\nClick on a text box to select that animal (highlighted in yellow), click again to unselect. Press the space bar to continue."
+    exemplar = visual.TextStim(win, text = exemplar_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 200), wrapWidth = WIN_SIZE * 0.8)
+    exemplar.draw()
+    
+    options = options_list[i]
+
+    # go through the options 
+    for idx, opt_dict in enumerate(options): 
+        #generate textboxes
+        opt_text = visual.TextStim(win,text=opt_dict['text'], height=20, color="black",pos=[0,0])
+        opt_rect = visual.Rect(win, width=120, #standardize so that they can be evenly distributed across the screen 
+                                        height=40, 
+                                        fillColor='white', lineColor='black')
+        loc_x = -WIN_SIZE/2 + 100 + (WIN_SIZE-200) * idx / (N_OPTIONS-1) # distribute the options on the screen
+        opt_text.setPos((loc_x, 0))
+        opt_rect.setPos((loc_x, 0))
+        opt_rect.draw()
+        opt_text.draw()
+        opt_dict['text_stim'] = opt_text
+        opt_dict['rect_stim'] = opt_rect
+    win.flip()
+
+    while not event.getKeys(keyList=['space']): 
+        for option in options:
+            cur_rect = option['rect_stim'] 
+            if mouse.isPressedIn(cur_rect): 
+                #switch selection of option 
+                option['selected'] = not option['selected']
+                if option['selected']: 
+                    cur_rect.setFillColor('yellow')
+                else: 
+                    cur_rect.setFillColor('white')
+                for option in options:  
+                    option['rect_stim'].draw()
+                    option['text_stim'].draw()
+                exemplar.draw()
+                win.flip()
+
+                #wait a little so that the colors don't flip constantly...
+                core.wait(.5)
+
+    mouse.clickReset()
 
 #data_file.close()
+
 win.close() #close the window
 core.quit() #quit out of the program
 
