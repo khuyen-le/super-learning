@@ -117,7 +117,7 @@ def get_runtime_variables(runtime_vars, order, exp_title='SuperLearning'):
         if dlg.OK: 
             #if subject code has already been used (only need to check the 'free_sort' folder)
             #then loop back to input box
-            file_name = "data/free_sort" + runtime_vars['subj_code'] + "_data_.csv"
+            file_name = "data/RAW_DATA/free_sort" + runtime_vars['subj_code'] + "_data_.csv"
             if os.path.isfile(file_name): 
                 errorDlg = gui.Dlg(title="Error")
                 errorDlg.addText(f"Error: {runtime_vars['subj_code']} already in use.", color = 'Red')
@@ -148,21 +148,21 @@ def import_trials(trial_filename, col_names=None, separator=','):
 def create_data_files(subj_code, separator=','): 
     # create a data folder if it doesn't already exist
     try:
-        os.mkdir('data/free_sort')
+        os.mkdir('data/RAW_DATA/free_sort')
     except FileExistsError:
         print('Data directory exists; proceeding to open file')
     
     try:
-        os.mkdir('data/learning')
+        os.mkdir('data/RAW_DATA/learning')
     except FileExistsError:
         print('Data directory exists; proceeding to open file')
 
     #open file to write data to and store a header
-    data_file_free_sort = open(f"data/free_sort/{subj_code}_data.csv",'w')
+    data_file_free_sort = open(f"data/RAW_DATA/free_sort/{subj_code}_data.csv",'w')
     header_free_sort = separator.join(["subj_code","seed","version", 'phase','item',
                              'init_x', 'init_y', 'final_x', 'final_y', 'cluster', 'rt'])
     data_file_free_sort.write(header_free_sort+'\n')
-    data_file_learning = open(f"data/learning/{subj_code}_data.csv",'w')
+    data_file_learning = open(f"data/RAW_DATA/learning/{subj_code}_data.csv",'w')
     header_learning = separator.join(["subj_code","seed","version", 'phase', 'label',
                              'trial', 'hint', 'options', 'response', 'rt'])
     data_file_learning.write(header_learning+'\n')
