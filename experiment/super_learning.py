@@ -2,29 +2,63 @@ from psychopy import visual, event, core, gui # import the bits of PsychoPy we'l
 import os
 import random
 import math
-from generate_trials import generate_trials
-from helper import get_runtime_variables, import_trials, random_point_in_circle, generate_guessing_game
-from cluster import get_cluster, test_cluster
+#from generate_trials import generate_trials
+from helper import get_runtime_variables, import_trials, random_point_in_circle, generate_guessing_game, create_data_files, write_to_file_free_sort
+from cluster import get_cluster, test_cluster, update_cluster
 
 #open a window
 WIN_SIZE = 800
 #TODO: change this to full screen? 
-win = visual.Window([WIN_SIZE,WIN_SIZE],color="grey", units='pix', checkTiming=False) 
+win = visual.Window([WIN_SIZE,WIN_SIZE],color="grey", units='pix', checkTiming=False, 
+                    fullscr=False) 
+
+# create circle boundary, to pass to generate_trials function
+RADIUS = WIN_SIZE * 0.4
+boundary = visual.Circle(
+    win=win,
+    radius=RADIUS, # change this
+    lineColor='black',
+    fillColor='lightgreen',
+    pos = (0, -70)
+) 
+
+#create items list, to pass to generate_trials function
+# items = ['zebra', 'horse', 'giraffe', 'elephant', 'pig', 'sheep', 'cow', 'rabbit', 'seal', 'dog', 
+#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'human', 'raccoon', 'beaver', 'lion', 
+#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 'peacock', 'fly', 
+#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'sealion', 'crab', 'snake', 'frog', 'turtle', 
+#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl', 'gecko', 'mosquito',
+#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'eel', 'salmon', 'cheetah', 'ostrich', 'starfish']
+
+# # not great... maybe if we actually run it we should think about how many to sample...
+# items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
+#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle',
+#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 
+#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'crab', 'snake', 'frog', 
+#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl',
+#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'salmon', 'cheetah', 'ostrich']
+
+items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
+         'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle', 
+         'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin']
+
+items_list = list(map(lambda x: {'text': x}, items))
 
 #get runtime variables
 order =  ['subj_code','seed', 'version']
-#close: sampled within one cluster; far: sampled across all clusters
 runtime_vars = get_runtime_variables({'subj_code':'sl_101', 'seed':23, 
-                                      'Select version':['near', 'far']}, order)
+                                      'Select version':['near', 'far']}, 
+                                      order)
 print(runtime_vars)
-
 # generate trials
-# generate_trials(runtime_vars['subj_code'],runtime_vars['seed'],runtime_vars['test_mode'])
+#generate_trials(runtime_vars['subj_code'],runtime_vars['seed'],runtime_vars['test_mode'], boundary, items_list)
 
 #read in trials
 #trial_path = os.path.join(os.getcwd(),'trials',runtime_vars['subj_code']+'_trials.csv')
 #trial_list = import_trials(trial_path)
 #print(trial_list)
+
+data_file_free_sort, data_file_learning = create_data_files(runtime_vars['subj_code'])
 
 #open file to write data to and store a header
 #data_file = open(os.path.join(os.getcwd(),'data',runtime_vars['subj_code']+'_data.csv'),'w')
@@ -41,45 +75,12 @@ event.waitKeys(keyList=['space'])
 win.flip()
 core.wait(.5)
 
-# items = ['zebra', 'horse', 'giraffe', 'elephant', 'pig', 'sheep', 'cow', 'rabbit', 'seal', 'dog', 
-#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'human', 'raccoon', 'beaver', 'lion', 
-#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 'peacock', 'fly', 
-#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'sealion', 'crab', 'snake', 'frog', 'turtle', 
-#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl', 'gecko', 'mosquito',
-#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'eel', 'salmon', 'cheetah', 'ostrich', 'starfish']
-
-# # not great... maybe if we actually run it we should think about how many to sample...
-# items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
-#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle',
-#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 
-#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'crab', 'snake', 'frog', 
-#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl',
-#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'salmon', 'cheetah', 'ostrich']
-
-
-items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
-         'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle', 
-         'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin']
-
-items_list = list(map(lambda x: {'text': x}, items))
-
-#items = ['dog', 'cat', 'ant', 'frog', 'shark', 'human', 'lion', 'rabbit', 'snake', 'eagle']
 #show instructions for visual sort task
 instruction_visual_sort_text = "Please arrange these animals such that the ones more similar are closer together.\n\nPress the space bar when you are done."
 instruction_visual_sort = visual.TextStim(win, text = instruction_visual_sort_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 70), wrapWidth = WIN_SIZE * 0.8)
 instruction_visual_sort.draw()
 
-#responseTimer = core.Clock()
-
-# create circle boundary
-RADIUS = WIN_SIZE * 0.4
-boundary = visual.Circle(
-    win=win,
-    radius=RADIUS, # change this
-    lineColor='black',
-    fillColor='lightgreen',
-    pos = (0, -70)
-) 
+#also draw the boundary
 boundary.draw()
 
 item_positions = [] #keep track of item positions so that it's easier to check for location of rectangles to not be too overlapping.
@@ -117,6 +118,9 @@ for item in items_list:
     item['rect'] = item_rect
     item['text_stim'] = item_text
 
+    item['init_x'] = item_x
+    item['init_y'] = item_y
+
     item_rect.draw()
     item_text.draw()
 
@@ -126,7 +130,7 @@ win.flip()
 # getting help from drag_images
 # create a mouse
 mouse = event.Mouse(win=win)
-
+responseTimer = core.Clock()
 # a little bit funky if you move the mouse too fast
 while not event.getKeys(keyList=['space']):
     for item in items_list:
@@ -145,15 +149,22 @@ while not event.getKeys(keyList=['space']):
                         item['rect'].draw()
                         item['text_stim'].draw()
                     win.flip()
+
+#get reaction time the moment 'space' is hit.
+rt = responseTimer.getTime()
 mouse.clickReset()
 
 items_pos = list(map(lambda x: x['rect'].pos, items_list))
-cluster = get_cluster(items_pos, 10)
+cluster = get_cluster(items_pos, max_n_cluster=10)
+#update items_list with cluster label
+items_list = update_cluster(items_list, cluster)
 
-#show colored-in clusters
+write_to_file_free_sort(data_file_free_sort, items_list, rt, runtime_vars)
+data_file_free_sort.close()
+
+#ONLY FOR DEMO: show colored-in clusters
 instruction_test_cluster = visual.TextStim(win, text = "This part is here to test the clustering method, will be commented out for actual experiment. Press space bar to continue.", color="white", height=25, pos = (0, WIN_SIZE/2 - 70), wrapWidth = WIN_SIZE * 0.8)
 instruction_test_cluster.draw()
-
 test_cluster(cluster, items_list)
 win.flip()
 event.waitKeys(keyList=['space'])
@@ -190,8 +201,7 @@ for i in range(N_GUESSES):
         #generate textboxes
         opt_text = visual.TextStim(win,text=opt_dict['text'], height=20, color="black",pos=[0,0])
         opt_rect = visual.Rect(win, width=120, #standardize so that they can be evenly distributed across the screen 
-                                        height=40, 
-                                        fillColor='white', lineColor='black')
+                               height=40, fillColor='white', lineColor='black')
         loc_x = -WIN_SIZE/2 + 100 + (WIN_SIZE-200) * idx / (N_OPTIONS-1) # distribute the options on the screen
         opt_text.setPos((loc_x, 0))
         opt_rect.setPos((loc_x, 0))

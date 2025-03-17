@@ -21,6 +21,11 @@ def get_cluster(array, max_n_cluster):
     cluster = KMedoids(n_clusters = kl.elbow, method='pam').fit(array)
     return cluster
 
+def update_cluster(items_list, cluster): 
+    for idx, item in enumerate(items_list): 
+        item['cluster'] = cluster.labels_[idx]
+    return items_list
+
 def test_cluster(cluster, items_list): 
     for idx, cluster_number in enumerate(cluster.labels_):
         if (cluster_number == 0): 

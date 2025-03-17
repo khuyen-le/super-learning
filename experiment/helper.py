@@ -111,12 +111,13 @@ def random_point_in_circle(radius, center):
     item_y += center[1]
     return item_x, item_y
 
-def get_runtime_variables(runtime_vars, order, exp_title='Stroop'):
+def get_runtime_variables(runtime_vars, order, exp_title='SuperLearning'):
     while True: 
         dlg = gui.DlgFromDict(runtime_vars, order=order, title=exp_title)
         if dlg.OK: 
-            #if subject code has already been used, then loop back to input box
-            file_name = "trials/" + runtime_vars['subj_code'] + "_trials.csv"
+            #if subject code has already been used (only need to check the 'free_sort' folder)
+            #then loop back to input box
+            file_name = "data/free_sort" + runtime_vars['subj_code'] + "_data_.csv"
             if os.path.isfile(file_name): 
                 errorDlg = gui.Dlg(title="Error")
                 errorDlg.addText(f"Error: {runtime_vars['subj_code']} already in use.", color = 'Red')
@@ -143,21 +144,51 @@ def import_trials(trial_filename, col_names=None, separator=','):
         trials_list.append(trial_dict)
     return trials_list
 
-#open data file
-def create_data_file(subj_code, separator=','): 
+#open data fileS, let's see how this go...
+def create_data_files(subj_code, separator=','): 
     # create a data folder if it doesn't already exist
     try:
-        os.mkdir('data')
+        os.mkdir('data/free_sort')
+    except FileExistsError:
+        print('Data directory exists; proceeding to open file')
+    
+    try:
+        os.mkdir('data/learning')
     except FileExistsError:
         print('Data directory exists; proceeding to open file')
 
     #open file to write data to and store a header
-    data_file = open(f"data/{subj_code}_data.csv",'w')
-    header = separator.join(["subj_code", "seed", "word", 'color', 'trial_type', 'orientation',
-                             "trial_num", "response", "is_correct", "rt"])
-    data_file.write(header+'\n')
-    return data_file
+    data_file_free_sort = open(f"data/free_sort/{subj_code}_data.csv",'w')
+    header_free_sort = separator.join(["subj_code","seed","version", 'phase','item',
+                             'init_x', 'init_y', 'final_x', 'final_y', 'cluster', 'rt'])
+    data_file_free_sort.write(header_free_sort+'\n')
+    data_file_learning = open(f"data/learning/{subj_code}_data.csv",'w')
+    header_learning = separator.join(["subj_code","seed","version", 'phase', 'label',
+                             'trial', 'hint', 'options', 'response', 'rt'])
+    data_file_learning.write(header_learning+'\n')
 
+    return data_file_free_sort, data_file_learning
+
+def write_to_file_free_sort(fileHandle, items_list, rt, runtime_vars, separator=',', sync=False, add_newline=True): 
+    for item in items_list: 
+        data = [runtime_vars['subj_code'], runtime_vars['seed'], runtime_vars['Select version'], 
+                'sort', item['text'], 
+                item['init_x'], item['init_y'], 
+                #final_x and final_y
+                item['rect'].pos[0], item['rect'].pos[1],
+                item['cluster'], rt]
+        line = separator.join([str(i) for i in data])
+        print(line)
+        if add_newline: 
+            line += '\n'
+        try:
+            fileHandle.write(line)
+        except:
+            print('file is not open for writing')
+        if sync: #set sync=False to NOT close the file after writing each line.
+            fileHandle.flush()
+            os.fsync(fileHandle)
+        
 def write_to_file(fileHandle, trial, response, separator=',', sync=False, add_newline=True): 
     #get information of current trial
     trial_info = [trial[_] for _ in trial]
