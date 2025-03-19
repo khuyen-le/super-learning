@@ -2,8 +2,8 @@ from psychopy import visual, event, core, gui # import the bits of PsychoPy we'l
 import os
 import random
 import math
-#from generate_trials import generate_trials
-from helper import get_runtime_variables, import_trials, random_point_in_circle, generate_guessing_game, create_data_files, write_to_file_free_sort
+from helper import get_runtime_variables, import_trials, random_point_in_circle, create_data_files, write_to_file_free_sort, write_to_file_learning, write_to_file_learning_trials
+from generate_guessing_game import generate_guessing_game, pluralize
 from cluster import get_cluster, test_cluster, update_cluster
 
 #open a window
@@ -12,58 +12,30 @@ WIN_SIZE = 800
 win = visual.Window([WIN_SIZE,WIN_SIZE],color="grey", units='pix', checkTiming=False, 
                     fullscr=False) 
 
-# create circle boundary, to pass to generate_trials function
-RADIUS = WIN_SIZE * 0.4
-boundary = visual.Circle(
-    win=win,
-    radius=RADIUS, # change this
-    lineColor='black',
-    fillColor='lightgreen',
-    pos = (0, -70)
-) 
-
-#create items list, to pass to generate_trials function
-# items = ['zebra', 'horse', 'giraffe', 'elephant', 'pig', 'sheep', 'cow', 'rabbit', 'seal', 'dog', 
-#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'human', 'raccoon', 'beaver', 'lion', 
-#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 'peacock', 'fly', 
-#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'sealion', 'crab', 'snake', 'frog', 'turtle', 
-#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl', 'gecko', 'mosquito',
-#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'eel', 'salmon', 'cheetah', 'ostrich', 'starfish']
-
-# # not great... maybe if we actually run it we should think about how many to sample...
-# items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
-#          'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle',
-#          'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 
-#          'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'crab', 'snake', 'frog', 
-#          'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl',
-#          'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'salmon', 'cheetah', 'ostrich']
-
-items = ['zebra', 'horse', 'human', 'elephant', 'cow', 'rabbit', 'seal', 'dog', 
-         'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'lion', 'turtle', 
-         'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin']
-
-items_list = list(map(lambda x: {'text': x}, items))
-
 #get runtime variables
-order =  ['subj_code','seed', 'version']
+order =  ['subj_code','seed', 'version', 'n_guesses', 'n_options']
 runtime_vars = get_runtime_variables({'subj_code':'sl_101', 'seed':23, 
-                                      'Select version':['near', 'far']}, 
+                                      'Select version':['near', 'far'], 
+                                      'n_guesses': 5, 
+                                      'n_options': 5}, 
                                       order)
 print(runtime_vars)
-# generate trials
-#generate_trials(runtime_vars['subj_code'],runtime_vars['seed'],runtime_vars['test_mode'], boundary, items_list)
 
-#read in trials
-#trial_path = os.path.join(os.getcwd(),'trials',runtime_vars['subj_code']+'_trials.csv')
-#trial_list = import_trials(trial_path)
-#print(trial_list)
+data_file_free_sort, data_file_learning, data_file_learning_trials = create_data_files(runtime_vars['subj_code'])
 
-data_file_free_sort, data_file_learning = create_data_files(runtime_vars['subj_code'])
+#create items list, to pass to generate_trials function
+items = ['zebra', 'horse', 'giraffe', 'elephant', 'pig', 'sheep', 'cow', 'rabbit', 'seal', 'dog', 
+         'cat', 'bear', 'tiger', 'fox', 'squirrel', 'monkey', 'human', 'raccoon', 'beaver', 'lion', 
+         'mouse', 'whale', 'dolphin', 'shark', 'goldfish', 'eagle', 'parrot', 'penguin', 'peacock', 'fly', 
+         'ant', 'bee', 'seahorse', 'chimpanzee', 'chicken', 'sealion', 'crab', 'snake', 'frog', 'turtle', 
+         'butterfly', 'bat', 'worm', 'octopus', 'crocodile', 'gorilla', 'kangaroo', 'owl', 'gecko', 'mosquito',
+         'jellyfish', 'scorpion', 'lobster', 'snail', 'spider', 'eel', 'salmon', 'cheetah', 'ostrich', 'starfish']
 
-#open file to write data to and store a header
-#data_file = open(os.path.join(os.getcwd(),'data',runtime_vars['subj_code']+'_data.csv'),'w')
-#header = separator.join(["subj_code","seed", 'image_name','item','angle','match','correct_response','response','rt'])
-#data_file.write(header+'\n')
+# select only a few from the items, to save free sorting time
+# actual experiment should probably fix this number...
+n_items = math.ceil((runtime_vars['n_guesses'] + runtime_vars['n_guesses'] * runtime_vars['n_options']) * 1.25)
+items = random.sample(items, n_items)
+items_list = list(map(lambda x: {'text': x}, items))
 
 #show instructions
 instruction_text = "Welcome to the experiment!\n\nPress the space bar to continue."
@@ -80,7 +52,15 @@ instruction_visual_sort_text = "Please arrange these animals such that the ones 
 instruction_visual_sort = visual.TextStim(win, text = instruction_visual_sort_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 70), wrapWidth = WIN_SIZE * 0.8)
 instruction_visual_sort.draw()
 
-#also draw the boundary
+# create circle boundary, to pass to generate_trials function
+RADIUS = WIN_SIZE * 0.4
+boundary = visual.Circle(
+    win=win,
+    radius=RADIUS, # change this
+    lineColor='black',
+    fillColor='lightgreen',
+    pos = (0, -70)
+) 
 boundary.draw()
 
 item_positions = [] #keep track of item positions so that it's easier to check for location of rectangles to not be too overlapping.
@@ -97,11 +77,8 @@ for item in items_list:
     item_x, item_y = random_point_in_circle(RADIUS, boundary.pos)
     existing_check_idx = 0
     while existing_check_idx < len(item_positions):
-        print("checking location of item " + item['text'])
         existing_x, existing_y = item_positions[existing_check_idx]
-        print(existing_x, existing_y)
         if math.sqrt((item_x - existing_x)**2 + (item_y - existing_y)**2) < 50: #actual number was trial and error
-            print("too close, regenerating...")
             #regenerate item_x and y
             item_x, item_y = random_point_in_circle(RADIUS, boundary.pos) 
             #reset check idx
@@ -127,7 +104,6 @@ for item in items_list:
 win.flip()
 
 #now we're gonna try to move the texts around.
-# getting help from drag_images
 # create a mouse
 mouse = event.Mouse(win=win)
 responseTimer = core.Clock()
@@ -159,6 +135,7 @@ cluster = get_cluster(items_pos, max_n_cluster=10)
 #update items_list with cluster label
 items_list = update_cluster(items_list, cluster)
 
+# write to the free sort data file
 write_to_file_free_sort(data_file_free_sort, items_list, rt, runtime_vars)
 data_file_free_sort.close()
 
@@ -171,9 +148,20 @@ event.waitKeys(keyList=['space'])
 win.flip()
 
 #now play the guessing game
-#TODO: create 'pluralize' method to get pluralization of animal names
-#define the word for the novel category
-novel_cat = random.choice(['tulvers', 'sibus', 'tomas'])
+N_GUESSES = runtime_vars['n_guesses'] 
+N_OPTIONS = runtime_vars['n_options']
+
+# probably can combine these next two lines...
+hints, hints_cluster, options_list, options_cluster_list = generate_guessing_game(items_list, cluster, runtime_vars['Select version'], N_GUESSES, N_OPTIONS)
+write_to_file_learning_trials(data_file_learning_trials, hints, hints_cluster, options_list, options_cluster_list, runtime_vars)
+data_file_learning_trials.close()
+
+#read in trials
+trial_path = f"data/RAW_DATA/learning_trials/{runtime_vars['subj_code']}_trials.csv"
+trial_list = import_trials(trial_path)
+print(trial_list)
+
+novel_cat = trial_list[0]['label']
 
 instruction_game_text = f"In this section, you'll hear about animals that are {novel_cat}. Some animals are {novel_cat}, but not all animals are {novel_cat}.\n\nYour task is to guess which animals are {novel_cat} based on the examples provided.\n\nPress the space bar to continue."
 instruction_game = visual.TextStim(win, text = instruction_game_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 200), wrapWidth = WIN_SIZE * 0.8)
@@ -183,18 +171,15 @@ event.waitKeys(keyList='space')
 win.flip()
 core.wait(.5)
 
-N_GUESSES = 5 # set this
-N_OPTIONS = 3 
-
-hints, options_list = generate_guessing_game(items_list, cluster, runtime_vars['Select version'], N_GUESSES, N_OPTIONS)
-
 #play the guessing game
-for i in range(N_GUESSES): 
-    exemplar_text = f"{hints[i].capitalize()}s are {novel_cat}.\n\nOf the animals below, which one(s) do you think are also {novel_cat}?\n\nClick on a text box to select that animal (highlighted in yellow), click again to unselect. Press the space bar to continue."
+for i in range(len(trial_list)):
+    trial = trial_list[i]
+    exemplar_text = f"{pluralize(trial['hint']).capitalize()} are {trial['label']}.\n\nOf the animals below, which one(s) do you think are also {trial['label']}?\n\nClick on a text box to select that animal (highlighted in yellow), click again to unselect. Press the space bar to continue."
     exemplar = visual.TextStim(win, text = exemplar_text, color="white", height=25, pos = (0, WIN_SIZE/2 - 200), wrapWidth = WIN_SIZE * 0.8)
     exemplar.draw()
-    
-    options = options_list[i]
+
+    options = [{'text': x, 'selected': 0} for x in trial['options'].split('/')]
+    print(options)
 
     # go through the options 
     for idx, opt_dict in enumerate(options): 
@@ -225,15 +210,26 @@ for i in range(N_GUESSES):
                     option['rect_stim'].draw()
                     option['text_stim'].draw()
                 exemplar.draw()
+                #reset the timer after it draws
+                responseTimer.reset()
                 win.flip()
-
                 #wait a little so that the colors don't flip constantly...
                 core.wait(.5)
 
+    rt = responseTimer.getTime()
     mouse.clickReset()
+    # write to the learning data file
+    write_to_file_learning(data_file_learning, trial, options, rt)
 
-#data_file.close()
+data_file_learning.close()
 
+#show thank you text and end
+thanks_text = "Thank you for completing the study!\nPress the space bar to exit."
+thanks = visual.TextStim(win, text = thanks_text,color="white", height=25, pos = (0,0))
+thanks.draw()
+win.flip()
+#wait for the space key
+event.waitKeys(keyList=['space'])
 win.close() #close the window
 core.quit() #quit out of the program
 

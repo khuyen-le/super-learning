@@ -11,8 +11,9 @@ materials/*
 # old files
 *_old
 
-# raw demographic files
+# raw data files
 *RAW_DEMOG*
+*RAW_DATA*
 
 # temporary files
 *.DS_Store
