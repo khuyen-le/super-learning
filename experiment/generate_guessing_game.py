@@ -86,7 +86,6 @@ def generate_guessing_game(items_list, cluster, version, N_GUESSES, N_OPTIONS):
         #first make sure that the non-starting clusters get at least one hint each
         for cur_cluster_label in unique_cluster_labels: 
             if cur_cluster_label != starting_cluster_label: 
-                print('sampling from cluster ' + str(cur_cluster_label))
                 cur_cluster_idx = cluster_dict[cur_cluster_label]
                 hints_idx.extend(random.sample(cur_cluster_idx, 1))
         #present the sparsely-sampled hints in order, then fill out the remaining number of hints with randomly selected hints
